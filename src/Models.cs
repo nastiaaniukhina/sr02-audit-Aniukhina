@@ -13,11 +13,11 @@ public class Reader
 {
     public string CardNo { get; set; }
     public string Name { get; set; }
-    public string Phone;
+    public string Phone { get; set; }
     // adult, student, staff, child, pensioner
-    public string Category = "adult";
-    public decimal Debt;
-    public bool Blocked;
+    public string Category { get; set; } = "adult";
+    public decimal Debt { get; set; }
+    public bool Blocked { get; set; }
 }
 
 public class Book

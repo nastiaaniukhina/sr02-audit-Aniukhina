@@ -84,13 +84,15 @@ public class LoanManager
             }
         }
         LastFine = fine;
-        if (fine + curReader.Debt > DebtLimit)
+        decimal totalDebt = fine + curReader.Debt;
+        if (totalDebt > DebtLimit)
         {
-            LastError = "Debt limit exceeded: " + (fine + curReader.Debt).ToString("0.00");
+            LastError = "Debt limit exceeded: " + totalDebt.ToString("0.00");
             AuditLog.Write(DeskName + " DENY " + curReader.CardNo + " debt "
-                + (fine + curReader.Debt));
+              + totalDebt);
             return -1;
         }
+        
         if (onHand >= LoanLimit(curReader))
         {
             LastError = "Loan limit reached: " + onHand + " of " + LoanLimit(curReader);

@@ -1,0 +1,48 @@
+=== LibraryDesk: circulation desk demo ===
+Readers 6, books 10
+-- Issue --
+Issue R-1001 / INV-0001: loan #1003, 14 days
+Issue r-1002 / INV-0002: loan #1004, 30 days
+Issue R-1002 / INV-0003: loan #1005, 7 days
+Issue R-1001 / INV-0006: loan #1006, 10 days
+Issue R-1003 / INV-0007: loan #1007, 7 days, current fine 17,50
+Issue R-1006 / INV-0009: loan #1008, 14 days
+-- Issue: refusals --
+Issue R-1001 / INV-0004: DENIED - Book INV-0004 is for the reading room only
+Issue R-1004 / INV-0005: DENIED - Debt limit exceeded: 87,50
+Issue R-1005 / INV-0005: DENIED - Loan limit reached: 0 of 0
+Issue R-1002 / INV-0001: DENIED - Book is not available: INV-0001
+Issue R-9999 / INV-0005: DENIED - Reader not found: R-9999
+Issue <null> / INV-0005: DENIED - Card number is empty
+-- Extend --
+Extend #1003 (1): OK
+Extend #1003 (2): OK
+Extend #1003 (3): OK
+Extend #1003 (4): FAILED - Extension limit reached for loan #1003
+Extend #1005 (periodical): FAILED - Item INV-0003 cannot be extended
+Extend #1002 (overdue): FAILED - Loan #1002 is overdue, pay the fine first
+Extend #9999: FAILED - Loan not found: 9999
+-- Return --
+Overdue #1001: True, #1003: False
+  [desk] #1001 returned, fine 17,50
+Return #1001: fine 17,50
+Return #1001 again: ERROR Loan #1001 is already returned
+Extend #1001 after return: FAILED - Loan #1001 is closed (Returned)
+  [desk] loan #9999 not found
+Return #9999: -1
+  [desk] #1004 lost, charged 1200,00
+Loan #1001 after MarkLost: Returned
+-- Reports --
+Reader R-1001 Olena Kovalenko (adult)
+  #1003 INV-0001 'Kobzar' [Extended] ext x3
+  #1006 INV-0006 'Tiger Trappers' [Issued]
+  debt 0,00, fine 0,00
+Reader R-1002 Taras Melnyk (student) BLOCKED
+  #1004 INV-0002 'Higher Mathematics' [Lost]
+  #1005 INV-0003 'Ukrainian Week No. 12' [Issued]
+  debt 1200,00, fine 0,00
+Reader R-1004 Petro Savchuk (pensioner)
+  #1002 INV-0010 'Intermezzo' [Issued]
+  debt 45,00, fine 42,50
+Reader R-7777 not found
+Desk: issued 6, denied 6, audit records 12

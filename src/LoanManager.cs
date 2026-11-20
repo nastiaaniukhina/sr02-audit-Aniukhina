@@ -4,7 +4,7 @@ namespace LibraryDesk;
 // Пеню рахуємо тут же, без ReturnDesk.
 public class LoanManager
 {
-        private const int GraceDays = 3;
+    private const int GraceDays = 3;
     private const decimal FinePerDay = 2.5m;
     private const decimal FineCap = 150m;
     private const decimal DebtLimit = 50m;
@@ -73,14 +73,7 @@ public class LoanManager
             if (l.ReaderCard == curReader.CardNo && l.Status != LoanStatus.Returned)
             {
                 onHand++;
-                int overdue = (DateTime.Today - l.DueDate.Date).Days;
-                if (overdue > GraceDays)
-                {
-                    decimal pen = (overdue - GraceDays) * FinePerDay;
-                    if (pen > FineCap)
-                        pen = FineCap;
-                    fine = fine + pen;
-                }
+                fine = fine + OverdueFine(l);
             }
         }
         LastFine = fine;
@@ -142,6 +135,21 @@ public class LoanManager
         return loan.Id;
     }
 
+    private static decimal OverdueFine(Loan l)
+    {
+        if (DaysOverdue(l) <= GraceDays)
+            return 0m;
+        decimal pen = (DaysOverdue(l) - GraceDays) * FinePerDay;
+        if (pen > FineCap)
+            pen = FineCap;
+        return pen;
+    }
+
+    private static int DaysOverdue(Loan l)
+    {
+        return (DateTime.Today - l.DueDate.Date).Days;
+    }
+
     // Продовження видачі (за замовчуванням на 14 днів)
     public bool Extend(int loanId, int days)
     {
@@ -181,6 +189,7 @@ public class LoanManager
         AuditLog.Write(DeskName + " EXTEND #" + loanId + " +" + days);
         return true;
     }
+
     // шов: час можна підмінити в тестах
     protected virtual DateTime Now()
     {

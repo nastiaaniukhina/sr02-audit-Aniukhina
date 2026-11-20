@@ -48,70 +48,36 @@ public class LoanManager
         // рахуємо відмову наперед, при видачі віднімаємо
         DeniedToday++;
         if (string.IsNullOrWhiteSpace(cardNo))
-        {
-            LastError = "Card number is empty";
-            return -1;
-        }
+            return Deny("Card number is empty");
         curReader = store.FindReader(cardNo.Trim().ToUpper());
         if (curReader == null)
-        {
-            LastError = "Reader not found: " + cardNo;
-            return -1;
-        }
+            return Deny("Reader not found: " + cardNo);
         curBook = store.FindBook(invNo);
         if (curBook == null || !curBook.Available)
-        {
-            LastError = "Book is not available: " + invNo;
-            return -1;
-        }
+            return Deny("Book is not available: " + invNo);
 
         // пеня по всіх неповернених книгах читача
-        decimal fine = 0;
-        int onHand = 0;
-        foreach (Loan l in store.Loans)
-        {
-            if (l.ReaderCard == curReader.CardNo && l.Status != LoanStatus.Returned)
-            {
-                onHand++;
-                fine = fine + OverdueFine(l);
-            }
-        }
+        decimal fine = TotalFine(curReader);
+        int onHand = CountOnHand(curReader);
         LastFine = fine;
         decimal totalDebt = fine + curReader.Debt;
         if (totalDebt > DebtLimit)
         {
             LastError = "Debt limit exceeded: " + totalDebt.ToString("0.00");
             AuditLog.Write(DeskName + " DENY " + curReader.CardNo + " debt "
-              + totalDebt);
+                + totalDebt);
             return -1;
         }
-        
         if (onHand >= LoanLimit(curReader))
-        {
-            LastError = "Loan limit reached: " + onHand + " of " + LoanLimit(curReader);
-            return -1;
-        }
+            return Deny("Loan limit reached: " + onHand + " of " + LoanLimit(curReader));
 
-        // термін видачі, днів
-        int term = StandardTermDays;
-        if (curReader.Category == "student")
-            term = StudentTermDays;
-        if (curBook.Kind == "periodical")
-            term = ShortTermDays;
-        // якщо книга довідкова або рідкісна,
-        // то тільки в зал і повернути в той же день
-        if (curBook.Kind == "reference" || curBook.Rare)
+        int term = BaseTerm(curReader, curBook);
+        if (IsReadingRoomOnly(curBook))
         {
             if (!readingRoom)
-            {
-                LastError = "Book " + curBook.InventoryNo + " is for the reading room only";
-                return -1;
-            }
+                return Deny("Book " + curBook.InventoryNo + " is for the reading room only");
             if (Now().Hour >= ClosingHour)
-            {
-                LastError = "Reading room closes at 20:00, no issues after 19:00";
-                return -1;
-            }
+                return Deny("Reading room closes at 20:00, no issues after 19:00");
             term = 0;
         }
         else if (fine > 0)
@@ -119,9 +85,62 @@ public class LoanManager
             // боржникам - тиждень, поки не сплатять
             term = ShortTermDays;
         }
-        if (days > 0 && days < term)
-            term = days;
+        term = RequestedTerm(term, days);
+        return RegisterLoan(term);
+    }
 
+    private int CountOnHand(Reader r)
+    {
+        int count = 0;
+        foreach (Loan l in store.Loans)
+        {
+            if (l.ReaderCard == r.CardNo && l.Status != LoanStatus.Returned)
+                count++;
+        }
+        return count;
+    }
+
+    private decimal TotalFine(Reader r)
+    {
+        decimal fine = 0;
+        foreach (Loan l in store.Loans)
+        {
+            if (l.ReaderCard == r.CardNo && l.Status != LoanStatus.Returned)
+                fine = fine + OverdueFine(l);
+        }
+        return fine;
+    }
+
+    private static int BaseTerm(Reader r, Book b)
+    {
+        int term = StandardTermDays;
+        if (r.Category == "student")
+            term = StudentTermDays;
+        if (b.Kind == "periodical")
+            term = ShortTermDays;
+        return term;
+    }
+
+    private static int RequestedTerm(int term, int days)
+    {
+        if (days > 0 && days < term)
+            return days;
+        return term;
+    }
+
+    private static bool IsReadingRoomOnly(Book b)
+    {
+        return b.Kind == "reference" || b.Rare;
+    }
+
+    private int Deny(string message)
+    {
+        LastError = message;
+        return -1;
+    }
+
+    private int RegisterLoan(int term)
+    {
         Loan loan = new Loan { Id = LibraryStore.NextLoanId++,
             ReaderCard = curReader.CardNo, InventoryNo = curBook.InventoryNo,
             IssuedOn = DateTime.Today, DueDate = DateTime.Today.AddDays(term) };

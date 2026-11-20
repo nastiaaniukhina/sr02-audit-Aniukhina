@@ -36,14 +36,7 @@ public class ReportBuilder
             sb.AppendLine(line);
             if (l.Status == LoanStatus.Returned)
                 continue;
-            int d = (DateTime.Today - l.DueDate.Date).Days;
-            if (d > 3)
-            {
-                decimal p = (d - 3) * 2.5m;
-                if (p > 150)
-                    p = 150;
-                fine = fine + p;
-            }
+            fine = fine + FineCalculator.ForLoan(l);
         }
         sb.Append("  debt " + r.Debt.ToString("0.00") + ", fine " + fine.ToString("0.00"));
         return sb.ToString();

@@ -4,9 +4,6 @@ namespace LibraryDesk;
 // Пеню рахуємо тут же, без ReturnDesk.
 public class LoanManager
 {
-    private const int GraceDays = 3;
-    private const decimal FinePerDay = 2.5m;
-    private const decimal FineCap = 150m;
     private const decimal DebtLimit = 50m;
     private const int StandardTermDays = 14;
     private const int StudentTermDays = 30;
@@ -14,9 +11,17 @@ public class LoanManager
     private const int ClosingHour = 19;
     private const int MaxExtendDays = 30;
     private const int DefaultExtendDays = 14;
+    private const int DefaultLoanLimit = 5;
 
     // не більше 2 продовжень (правила, п. 4.3)
     private const int MaxExtensions = 2;
+
+    private static readonly Dictionary<string, int> LimitByCategory =
+        new Dictionary<string, int>
+        {
+            { "staff", 10 },
+            { "child", 3 }
+        };
 
     private LibraryStore store;
     public string LastError = "";
@@ -106,7 +111,7 @@ public class LoanManager
         foreach (Loan l in store.Loans)
         {
             if (l.ReaderCard == r.CardNo && l.Status != LoanStatus.Returned)
-                fine = fine + OverdueFine(l);
+                fine = fine + FineCalculator.ForLoan(l);
         }
         return fine;
     }
@@ -152,21 +157,6 @@ public class LoanManager
         AuditLog.Write(DeskName + " ISSUE #" + loan.Id + " " + loan.ReaderCard + " "
             + loan.InventoryNo + " " + term + "d");
         return loan.Id;
-    }
-
-    private static decimal OverdueFine(Loan l)
-    {
-        if (DaysOverdue(l) <= GraceDays)
-            return 0m;
-        decimal pen = (DaysOverdue(l) - GraceDays) * FinePerDay;
-        if (pen > FineCap)
-            pen = FineCap;
-        return pen;
-    }
-
-    private static int DaysOverdue(Loan l)
-    {
-        return (DateTime.Today - l.DueDate.Date).Days;
     }
 
     // Продовження видачі (за замовчуванням на 14 днів)
@@ -229,14 +219,8 @@ public class LoanManager
         // тимчасово: заблокованим 0, Issue сам відмовить
         if (r.Blocked)
             return 0;
-        switch (r.Category)
-        {
-            case "staff":
-                return 10;
-            case "child":
-                return 3;
-            default:
-                return 5;
-        }
+        if (r.Category != null && LimitByCategory.TryGetValue(r.Category, out int limit))
+            return limit;
+        return DefaultLoanLimit;
     }
 }

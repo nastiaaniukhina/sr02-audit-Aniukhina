@@ -4,9 +4,19 @@ namespace LibraryDesk;
 // Пеню рахуємо тут же, без ReturnDesk.
 public class LoanManager
 {
+        private const int GraceDays = 3;
+    private const decimal FinePerDay = 2.5m;
+    private const decimal FineCap = 150m;
+    private const decimal DebtLimit = 50m;
+    private const int StandardTermDays = 14;
+    private const int StudentTermDays = 30;
+    private const int ShortTermDays = 7;
+    private const int ClosingHour = 19;
+    private const int MaxExtendDays = 30;
+    private const int DefaultExtendDays = 14;
+
     // не більше 2 продовжень (правила, п. 4.3)
-    private const int MAX_EXT = 2;
-    private static bool traceExtend = false;
+    private const int MaxExtensions = 2;
 
     private LibraryStore store;
     public string LastError = "";
@@ -64,17 +74,17 @@ public class LoanManager
             {
                 onHand++;
                 int overdue = (DateTime.Today - l.DueDate.Date).Days;
-                if (overdue > 3)
+                if (overdue > GraceDays)
                 {
-                    decimal pen = (overdue - 3) * 2.5m;
-                    if (pen > 150)
-                        pen = 150;
+                    decimal pen = (overdue - GraceDays) * FinePerDay;
+                    if (pen > FineCap)
+                        pen = FineCap;
                     fine = fine + pen;
                 }
             }
         }
         LastFine = fine;
-        if (fine + curReader.Debt > 50)
+        if (fine + curReader.Debt > DebtLimit)
         {
             LastError = "Debt limit exceeded: " + (fine + curReader.Debt).ToString("0.00");
             AuditLog.Write(DeskName + " DENY " + curReader.CardNo + " debt "
@@ -88,11 +98,11 @@ public class LoanManager
         }
 
         // термін видачі, днів
-        int term = 14;
+        int term = StandardTermDays;
         if (curReader.Category == "student")
-            term = 30;
+            term = StudentTermDays;
         if (curBook.Kind == "periodical")
-            term = 7;
+            term = ShortTermDays;
         // якщо книга довідкова або рідкісна,
         // то тільки в зал і повернути в той же день
         if (curBook.Kind == "reference" || curBook.Rare)
@@ -102,7 +112,7 @@ public class LoanManager
                 LastError = "Book " + curBook.InventoryNo + " is for the reading room only";
                 return -1;
             }
-            if (Now().Hour >= 19)
+            if (Now().Hour >= ClosingHour)
             {
                 LastError = "Reading room closes at 20:00, no issues after 19:00";
                 return -1;
@@ -112,7 +122,7 @@ public class LoanManager
         else if (fine > 0)
         {
             // боржникам - тиждень, поки не сплатять
-            term = 7;
+            term = ShortTermDays;
         }
         if (days > 0 && days < term)
             term = days;
@@ -144,7 +154,7 @@ public class LoanManager
             LastError = "Loan #" + loanId + " is closed (" + loan.Status + ")";
             return false;
         }
-        if (loan.Extensions > MAX_EXT)
+        if (loan.Extensions > MaxExtensions)
         {
             LastError = "Extension limit reached for loan #" + loanId;
             return false;
@@ -161,13 +171,11 @@ public class LoanManager
             return false;
         }
         // TODO: check the reservation queue first
-        if (days <= 0 || days > 30)
-            days = 14;
+        if (days <= 0 || days > MaxExtendDays)
+            days = DefaultExtendDays;
         loan.DueDate = loan.DueDate.AddDays(days);
         loan.Extensions++;
         loan.Status = LoanStatus.Extended;
-        if (traceExtend)
-            Console.WriteLine("extend #" + loanId + " -> " + loan.DueDate.ToShortDateString());
         AuditLog.Write(DeskName + " EXTEND #" + loanId + " +" + days);
         return true;
     }

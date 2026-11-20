@@ -11,7 +11,7 @@ public class ReturnDesk
     }
 
     // Повернення книги: пеня або -1, якщо нема
-    // Пеня: 2 грн за день після 5 пільгових днів
+    // Пеня: 2,5 грн за день після 3 пільгових днів, не більше 150 грн
     public decimal Return(int loanId)
     {
         Loan loan = store.FindLoan(loanId);
@@ -36,9 +36,6 @@ public class ReturnDesk
                 charged = charged + fineAmt;
             }
         }
-        //int days = (DateTime.Today - loan.IssuedOn).Days - 30;
-        //if (days > 0)
-        //    charged = days * 2;
 
         Reader r = store.FindReader(loan.ReaderCard);
         if (r != null)
@@ -64,7 +61,7 @@ public class ReturnDesk
         if (loan == null || loan.Status == LoanStatus.Returned
             || loan.Status == LoanStatus.Lost)
             return;
-        decimal cost = calcReplacementCost(store.FindBook(loan.InventoryNo));
+        decimal cost = CalcReplacementCost(store.FindBook(loan.InventoryNo));
         Reader r = store.FindReader(loan.ReaderCard);
         if (r != null)
         {
@@ -78,7 +75,7 @@ public class ReturnDesk
     }
 
     // how much the reader pays for a lost book
-    private decimal calcReplacementCost(Book b)
+    private decimal CalcReplacementCost(Book b)
     {
         if (b == null)
             return 200; // ціна невідома - мінімум

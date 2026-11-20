@@ -26,10 +26,10 @@ public class Program
         TryIssue(mgr, null, "INV-0005", 0);
         Console.WriteLine("-- Extend --");
         for (int i = 1; i <= 4; i++)
-            print_result("Extend #" + first + " (" + i + ")", mgr.Extend(first, 14), mgr);
-        print_result("Extend #" + mag + " (periodical)", mgr.Extend(mag, 14), mgr);
-        print_result("Extend #1002 (overdue)", mgr.Extend(1002, 14), mgr);
-        print_result("Extend #9999", mgr.Extend(9999, 14), mgr);
+            PrintResult("Extend #" + first + " (" + i + ")", mgr.Extend(first, 14), mgr);
+        PrintResult("Extend #" + mag + " (periodical)", mgr.Extend(mag, 14), mgr);
+        PrintResult("Extend #1002 (overdue)", mgr.Extend(1002, 14), mgr);
+        PrintResult("Extend #9999", mgr.Extend(9999, 14), mgr);
         Returns(store, mgr, desk, textbook);
         ReportBuilder rep = new ReportBuilder(store);
         Console.WriteLine("-- Reports --");
@@ -55,7 +55,7 @@ public class Program
         {
             Console.WriteLine("Return #1001 again: ERROR " + e.Message);
         }
-        print_result("Extend #1001 after return", mgr.Extend(1001, 14), mgr);
+        PrintResult("Extend #1001 after return", mgr.Extend(1001, 14), mgr);
         Console.WriteLine("Return #9999: " + desk.Return(9999));
         desk.MarkLost(textbook);
         desk.MarkLost(1001);
@@ -78,7 +78,7 @@ public class Program
         return id;
     }
 
-    static void print_result(string label, bool ok, LoanManager m)
+    static void PrintResult(string label, bool ok, LoanManager m)
     {
         Console.WriteLine(label + (ok ? ": OK" : ": FAILED - " + m.LastError));
     }

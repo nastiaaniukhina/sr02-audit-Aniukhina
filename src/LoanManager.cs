@@ -102,7 +102,7 @@ public class LoanManager
                 LastError = "Book " + curBook.InventoryNo + " is for the reading room only";
                 return -1;
             }
-            if (DateTime.Now.Hour >= 19)
+            if (Now().Hour >= 19)
             {
                 LastError = "Reading room closes at 20:00, no issues after 19:00";
                 return -1;
@@ -171,13 +171,18 @@ public class LoanManager
         AuditLog.Write(DeskName + " EXTEND #" + loanId + " +" + days);
         return true;
     }
-
+    // шов: час можна підмінити в тестах
+    protected virtual DateTime Now()
+    {
+        return DateTime.Now;
+    }
+    
     // прострочена, якщо зараз пізніше дати повернення
     public bool IsOverdue(Loan loan)
     {
         if (loan.Status == LoanStatus.Returned)
             return false;
-        return DateTime.Now > loan.DueDate;
+        return Now() > loan.DueDate;
     }
 
     // max books on hand, by reader category
